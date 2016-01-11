@@ -1,4 +1,4 @@
-[学习github](pcottle.github.io/learnGitBranching)  
+[学习github](https://pcottle.github.io/learnGitBranching)  
 
 * commit
 * branch
