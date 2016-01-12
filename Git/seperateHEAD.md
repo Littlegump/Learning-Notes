@@ -28,3 +28,10 @@
 使用**相对引用**最多的是**移动分支**  
 可以使用-f选项直接让分支指向另一个提交。git branch -f master HEAD~3 //移动master指向HEAD的第三级父提交。   
 或者直接让master指向HEAD也行 git branch -f master HEAD
+## 在git中撤销更改
+* git reset
+* git revert
+git reset是对本地生效  
+git reset HEAD~1意思是将本次提交撤销，好像从来没发生过一样
+git revert HEAD 意识是将远程的提交撤销，只不过是重新生成一个提交，作为上一次提交的撤销  
+
