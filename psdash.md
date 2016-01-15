@@ -101,7 +101,7 @@
                 他的作用是定义哪一个目录要被同步，每个模块都要以[name]形式，这个name就是在rsync_client要看到的名字，服务器要真正同步的数据是通过path指定的
                 comment = DESC //当客户端获得一个可用的模块列表时，显示给客户端一个DESC描述字符串
                 path = PATH //指定服务器文件系统中的目录，每一个module中都要有path，可以使用环境变量作为变量名，使用%%包围，比如在path中使用认证用户的名字 path = /home/%RSYNC_USER_NAME%
-               ×× use chroot  = [yes|no] //使用chroot到指定的path来提升安全性。但是需要超级用户的权限才能使用此参数。
+                use chroot  = [yes|no] //也就是说如果为yes，那么rsync在传输文件前，先chroot到path参数所指定的目录下，使用chroot到指定的path来提升安全性。但是需要超级用户的权限才能使用此参数，并且不能用来存储指向外部的符号链接所指向的目录文件。默认为chroot = yes
                 numeric ids = [] //使用这个参数，将禁用当前daemon模块下通过名字进行users-->groups的映射。处于安全考虑这样将防止daemon尝试加载用户或用户组相关的文件和lib。命令行选项--numeric-ids。默认情况下，这个参数在chroot模块下是开启的，在non-chroot模块下是disabled。也就是说这个参数在chroot模块中是不必要的
                ×× munge symlinks //这个参数告诉rsync去修改所有的符号链接。这个参数保护你的文件，当你的daemon module是可写的时候，防止用户欺骗行为（？？？？），当chroot 是on的时候，并且inside-chroot是/的时候是disabled。其他情况munge symlinks是enabled。如果你在一个并非只读的daemon中disable这个参数，用户将会有很多技巧来玩弄上传的符号链接。
                 charset  // 用于指定字符集的名字，这里面存储了模块文件名。
@@ -113,37 +113,69 @@
                 read only = [yes|no]
                 write only = [yes|no]
                 list = //指明哪些可用的模块在被client请求列表时，可以被显示出来。
-                uid = //指定用户名或者UID当daemon以root身份运行的时候，
-                gid = //指定一个或者多个在访问某模块时要被用到的组名/组ID。
+                uid = //指定用户名当daemon以root身份运行的时候，指定当该module传输文件的时候，daemon应该具有的uid，配合gid选项，可以确定那些可以访问怎样的文件权限。
+                gid = //指定一个或者多个组名/组ID，该组名或者组ID是在该模块传输文件时候daemon该拥有的。
                 fake super = yes  //在模块中使用yes，或者在服务端使用--fake-super命令行选项，允许一个没有以root身份运行的daemon程序保存一个全属性的文件。
                 filter //daemon有自己的filter链来决定哪些文件可以被客户端访问，
-                exclude //
-                include //
-                exclude from //
+                exclude //指定一系列文件或者目录，用空格隔开，并将其添加到exclude列表中。等同于--exclude命令行选项，一个模块只能有一个exclude选项。如：要把所有/secret下的子目录都排除在外，则这样写规则exclude /secret/***
+                include //使用include参数来覆盖exlude参数。
+                exclude from //指定一个包含include模式的文件名，服务器从该文件读取exclude列表
                 include from //这四项都是和filter配合使用
+                他们的覆盖顺序为filter,include from,include,exclude from,exclude
                 incoming chmod  //允许你指定一些列的chmod字符串，并用逗号隔开，这将影响所有进入本机的文件的权限，详细见rsync --chmod选项。
                 outgoing chmod  //指定出去的文件应该做的chmod规则，也就说要出本机，就要chmod
-                auth users  //指定一系列认证规则列表，使用空格或者逗号分割。简单应用，列举被允许访问此模块的用户名。这些用户并不一定得在本地存在，如果这个参数被设定，那么远程client将要提供用户名和密码才能访问此模块。用户名和密码将被存储在secrets file指定的文件中
-                secrets file  //指定密码文件
-                strict modes
-                host allow = 192.168.1.0/255.255.255.0 10.0.1.0/255.255.255.0
-                host deny  //
-                reverse lookup
-                forward lookup
-                ignore errors
-                ignore nonreadable
+                auth users  //指定一系列认证规则列表，使用空格或者逗号分割。简单应用，列举被允许访问此模块的用户名。这些用户并不一定得在本地存在，如果这个参数被设定，那么远程client将要提供用户名和密码才能访问此模块。用户名和密码将被存储在secrets file指定的文件中。默认情况下，所有匿名用户都可以无密码链接服务器。如：auth users = joe:deny @guest:deny admin:rw @rsync:ro susan joe sam   在这个规则中，不论怎样，joe总是被拒绝的，所有属于guest组的用户也将被拒绝接入。只要admin用户不在guest组中，admin用户将享有读写权利。所有rsync组中的用户将以只读方式访问此module。最后，susan，joe，sam将可以以ro或者rw权限访问此module，只要没有被前面的组规则匹配到。
+                secrets file  //指定密码文件内容包括    username:password  @groupname:password 且基于行生效，用于验证此模块。此模块必须和auth users模块同用才生效。#开头行表注释，密码最好不要超过8个字符。
+                strict modes  //此参数决定secrets file的权限是否会被检查。如果strict modes 是true，那么secrets file只能被rsync服务器运行身份的用户访问，其他用户不可以访问该文件。默认数true，这个参数备用来调节rsync可以在windows OS上运行。
+                host allow = //指定可以访问本daemon的主机。
+                    此参数有5种格式：
+                        直接写IP
+                        使用ipaddr/n
+                        使用ipaddr/maskaddr
+                        使用hostname，但是只有reverse lookup = enabled的时候可以进行匹配
+                        使用文件名匹配的模式指定主机名，比如  alex[0-9]这种，同上应该enable reverse lookup
+                host deny  //指定黑名单。此处，如果host allow和host deny都指定了，那么一个参数将会先去匹配allow，然后匹配deny，如果都不在这两个规则中，那么默认允许接入。
+                reverse lookup  //反向解析：IP-->FQDN 指定daemon是否允许对client的IP地址进行hostname解析。可以禁用此选项节省时间。通常情况下是在全局默认禁止此选项，然后在module中按需开启此功能。
+                forward lookup  //正向解析：FQDN --> IP
+                ignore errors  //服务器端忽略IO错误信息  常常为on
+                ignore nonreadable  //告知服务器完全忽略对于用户不可读的文件。常用于在一些公共目录中有些文件不可读的时候，将不会被显示。
                 transfer logging = yes //开启传输文件日志
                 log format = 
-                timeout = 300
-                refuse options 
-                dont compress
+                    %a 远端IP
+                    %b 实际传送的字节数
+                    %f  文件名 长格式，没有/结尾
+                    %G 文件的gid
+                    %h 远程主机名
+                    %i 被更新的编号××**××*×*×*×*×*×**×
+                    %m 模块名
+                    %n 文件名  短格式，目录有/结尾
+                    %o 操作 （是send还是recv还是del）
+                    %p 该rsync会话的pid
+                    %P 模块路径
+                    %t 当前时间
+                    %u 被认证的用户名或者一个孔子富川
+                    %U 文件的UID
+                    
+                timeout = 300 //单位是秒，当一个client处于僵死状态，就不等待该客户端。0表示没有超时时长（默认）
+                refuse options   //这个选项也是跟安全相关的。定义一些不允许客户对该模块使用的命令参数列表。这里必须使用命令全名，而不能是简称，当有些选项是被禁止的时候，服务器会显示错误信息，并且退出。防止在传输时候使用压缩，可以使用dont compress参数来代替refuse options = compress，避免在请求压缩的时候给客户端返回一个error。
+                dont compress //在从daemon上pull文件的时候，结合此参数，可以使用unix基本文本匹配模式来指定不被压缩的文件类型
                 pre-xfer exec, post-xfer exec
-                
-                syslog
-                
-                
-                
-                
+                    在一次传送之前或者之后，你可以指定并运行一个命令，如果一个pre-xfer exec命令失败了，那么传送也将中止。所有脚本的stdout输出在transfer被中断的时候都会显示给用户。要是脚本返回成功，就不会显示。所有的脚本输出如果是stderr，就将转交给daemon的stderr，并且常常会被丢弃，如果使用--no-detatch就可以显示stderr的错误信息，帮助排错。
+                    此参数将设定一些环境变量，有些是pre-xfer和post-xfer特定的环境变量
+                    RSYNC_MODULE_NAME：被访问的module的名字
+                    RSYNC_MODULE_PATH：  module配置的路径
+                    RSYNC_HOST_ADDR ：访问者的IP地址
+                    RSYNC_HOST_NAME：访问者的hostname
+                    RSYNC_USER_NAME：访问者的username，如果无用户就为空
+                    RSYNC_PID   ： 此次传输的标识码
+                    RSYNC_REQUEST：（仅用于pre-xfer），由用户指定的module/path等信息。注：用户可以指定多种资源文件，所以request可以是”mod/path1 mod/path2“等
+                    RSYNC_ARG#：（仅用于pre-xfer），pre-request参数可以设置成这些值
+                        RSYNC_ARG0经常指rsyncd，
+                        RSYNC_ARG1
+                        RSYNC_ARG.  ： “.”表示选项的完成和路径的开始，这些包含和RSYNC_REQUEST相似的信息，但是值之间是分开的，并且模块名是完全暴露的
+                    RSYNC_EXIT_STATUS：（仅用于post-xfer）,server端的退出码。0表示正常退出，其他整数表示服务端错误，-1表示rsync正常退出失败。这个错误是客户端产生，并不会立即传送给server端，所以并不能作为一个完整传输的退出码。
+                    RSYNC_RAM_STATUS：（仅用于post-xfer），waitpid()产生的raw退出码
+                    注意：此命令虽然和module有关联，但是使用此命令的权限和启动daemon的权限一样，并不是module的uid/gid。
                 
                 
 3. 在FreeBSD上，使用适当的rsync命令参数，将编辑好的文件上传到linux虚拟机上。
