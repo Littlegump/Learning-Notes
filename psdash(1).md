@@ -18,8 +18,8 @@
 2. 使用supervisor来保证你的服务端进程在异常退出后能够自动重启
 
     <span> # pip install supervisor  
-        # echo_supervisord_conf > /etc/supervisor/supervisord.conf  
-        # vim !$  //参考[program段配置文件](http://supervisord.org/configuration.html#program-x-section-settings)    
+            # echo_supervisord_conf > /etc/supervisor/supervisord.conf  
+            # vim !$  //参考[program段配置文件](http://supervisord.org/configuration.html#program-x-section-settings)    
         
             [program:psdash]   //用这个段落表明它应该启动和控制哪一个程序
             command=/usr/local/bin/psdash
@@ -60,15 +60,6 @@
                 --verbose
                 --ipv4
                 --ipv6
-        系统环境：
-            server  Debian8.2   192.168.168.103
-            client  FreeBSD10.2 192.168.168.110         
-        rsync版本（rsync --version）
-            3.1.1
-        安装：
-            # apt-get install rsync  ------Debian
-            # cd /usr/ports/net/rsync/    ------FreeBSD
-            # make install clean
         配置(man 5 rsyncd.conf)
             /etc/rsyncd.conf
             分为全局定义和module定义部分
@@ -78,7 +69,7 @@
                 pid file = FILE //告诉daemon将自己的PID写到FILE中区，如果该文件已经存在，rsync daemon只会中止，不会覆盖该文件。 命令行选项--dparam=pidfile=FILE
                 port = PORT //指定服务端口，命令行用--port指定，如果daemon是被inetd运行的，这个PORT将会被忽略
                 address = IP //指定IP地址，--address，同样如果被inetd运行，该IP将会被忽略
-             ××   socket options =  //定义套接字选项，默认无此选项，可以通过--socketopts选项来指定  [参考wiki](http://wiki.treck.com/Socket_Options)   socket options常用于定义传输速度的快慢
+                socket options =  //定义套接字选项，默认无此选项，可以通过--socketopts选项来指定  [参考wiki](http://wiki.treck.com/Socket_Options)   socket options常用于定义传输速度的快慢
                     SO_BINDTODEVICE  
                     SO_DONTROUTE
                     SO_ERROR
@@ -107,12 +98,12 @@
                 charset  // 用于指定字符集的名字，这里面存储了模块文件名。
                 max connections = 5 //用于指定最大允许连接数，超过的部分给该客户端回复重试消息。
                 log file =  // 指定logfile而非使用syslog。这个参数会被--log-file=FILE 或者 --dparam=logfile=FILE命令行选项覆盖。--log-file=FILE覆盖了所有的daemon段和module段的log-file参数。
-                syslog facility = //指定当记录rsync daemon消息日志的时候可使用syslog facility name。常用名有 auth，authpriv，cron，daemon，ftp，kern，lpr，mail，news， security,  syslog，user，uucp，ocal0， local1， local2， local3， local4， local5， local6 ，local7，默认是daemon。这个参数在log file参数非空的时候不生效。
+                syslog facility = //指定当记录rsync daemon消息日志给syslog的时候的消息级别。常用的消息级别为 auth，authpriv，cron，daemon，ftp，kern，lpr，mail，news， security,  syslog，user，uucp，ocal0， local1， local2， local3， local4， local5， local6 ，local7，默认是daemon。这个参数在log file参数非空的时候不生效。
                 max verbosity  = //定义daemon产生的详细信息的最大量，默认值是1,表示允许客户端请求等级为一的信息量
                 lock file = FILE  //指定一个文件用来支持最大链接参数（max connections）。rsync daemon在这个文件中记录锁，以保证最大连接限制并没有超过module规定的，默认的锁文件是/var/run/rsyncd.lock
-                read only = [yes|no]
-                write only = [yes|no]
-                list = //指明哪些可用的模块在被client请求列表时，可以被显示出来。
+                read only = [yes|no]  //默认为yes
+                write only = [yes|no]  //
+                list = [yes|no] //指明本模块在被client请求列表时，是否可以被显示出来。
                 uid = //指定用户名当daemon以root身份运行的时候，指定当该module传输文件的时候，daemon应该具有的uid，配合gid选项，可以确定那些可以访问怎样的文件权限。
                 gid = //指定一个或者多个组名/组ID，该组名或者组ID是在该模块传输文件时候daemon该拥有的。
                 fake super = yes  //在模块中使用yes，或者在服务端使用--fake-super命令行选项，允许一个没有以root身份运行的daemon程序保存一个全属性的文件。
@@ -127,14 +118,14 @@
                 auth users  //指定一系列认证规则列表，使用空格或者逗号分割。简单应用，列举被允许访问此模块的用户名。这些用户并不一定得在本地存在，如果这个参数被设定，那么远程client将要提供用户名和密码才能访问此模块。用户名和密码将被存储在secrets file指定的文件中。默认情况下，所有匿名用户都可以无密码链接服务器。如：auth users = joe:deny @guest:deny admin:rw @rsync:ro susan joe sam   在这个规则中，不论怎样，joe总是被拒绝的，所有属于guest组的用户也将被拒绝接入。只要admin用户不在guest组中，admin用户将享有读写权利。所有rsync组中的用户将以只读方式访问此module。最后，susan，joe，sam将可以以ro或者rw权限访问此module，只要没有被前面的组规则匹配到。
                 secrets file  //指定密码文件内容包括    username:password  @groupname:password 且基于行生效，用于验证此模块。此模块必须和auth users模块同用才生效。#开头行表注释，密码最好不要超过8个字符。
                 strict modes  //此参数决定secrets file的权限是否会被检查。如果strict modes 是true，那么secrets file只能被rsync服务器运行身份的用户访问，其他用户不可以访问该文件。默认数true，这个参数备用来调节rsync可以在windows OS上运行。
-                host allow = //指定可以访问本daemon的主机。
+                hosts allow = //指定可以访问本daemon的主机。
                     此参数有5种格式：
                         直接写IP
                         使用ipaddr/n
                         使用ipaddr/maskaddr
                         使用hostname，但是只有reverse lookup = enabled的时候可以进行匹配
                         使用文件名匹配的模式指定主机名，比如  alex[0-9]这种，同上应该enable reverse lookup
-                host deny  //指定黑名单。此处，如果host allow和host deny都指定了，那么一个参数将会先去匹配allow，然后匹配deny，如果都不在这两个规则中，那么默认允许接入。
+                hosts deny  //指定黑名单。此处，如果host allow和host deny都指定了，那么一个参数将会先去匹配allow，然后匹配deny，如果都不在这两个规则中，那么默认允许接入。
                 reverse lookup  //反向解析：IP-->FQDN 指定daemon是否允许对client的IP地址进行hostname解析。可以禁用此选项节省时间。通常情况下是在全局默认禁止此选项，然后在module中按需开启此功能。
                 forward lookup  //正向解析：FQDN --> IP
                 ignore errors  //服务器端忽略IO错误信息  常常为on
@@ -176,10 +167,50 @@
                     RSYNC_EXIT_STATUS：（仅用于post-xfer）,server端的退出码。0表示正常退出，其他整数表示服务端错误，-1表示rsync正常退出失败。这个错误是客户端产生，并不会立即传送给server端，所以并不能作为一个完整传输的退出码。
                     RSYNC_RAM_STATUS：（仅用于post-xfer），waitpid()产生的raw退出码
                     注意：此命令虽然和module有关联，但是使用此命令的权限和启动daemon的权限一样，并不是module的uid/gid。
+
+
+    开始配置：
+        系统环境：
+            server  Debian8.2   192.168.168.103
+            client  FreeBSD10.2 192.168.168.110         
+        rsync版本（rsync --version）
+            3.1.1
+        安装：
+            # apt-get install rsync  ------Debian
+            # cd /usr/ports/net/rsync/    ------FreeBSD
+            # make install clean
+        Debian上配置：
+            vim /etc/rsyncd.conf
+                pid file = /var/run/rsyncd.pid
+                lock file = /var/run/rsyncd.lock
+                log file = /var/log/rsyncd.log
                 
+                [web]
+                comment = this is my web server dir
+                path = /var/www/html/
+                uid = 0
+                gid = 0
+                max connections = 4
+                use chroot = no
+                ignore errors
+                read only = no
+                list = false
+                hosts allow = 192.168.1.0/255.255.255.0
+                auth users = Debian
+                secrets file = /etc/rsyncd.secrets
                 
+            vim /etc/rsyncd.secrets
+                Debian:bk_passwd
+
+        FreeBSD:
+            vim /etc/rsyncd.secrets
+                bk_passwd
+        
+        上面的配置只能完成基本的功能使用：
+            配置pre-xfer钩子函数
 3. 在FreeBSD上，使用适当的rsync命令参数，将编辑好的文件上传到linux虚拟机上。
 
+        rsync -av --password-file=/etc/rsyncd.secrets Debian@192.168.1.113::web /backup/web
         
 4. 由于我们在上一条中配置好了rsync钩子，每次我们执行完rsync上传后，我们的静态博客内容应该该已经在某个目录中生成好了。请适当配置apache，使得它能够对外提供生成好的博客内容。要求如下：
     a. 仔细阅读apache配置文档
