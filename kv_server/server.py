@@ -5,12 +5,13 @@ import sys
 from thread import *
 import os
 import pickle
-#try:
-#    import urllib3
-#except ImportError:
-#    print '去安装urllib3库~'
-#    sys.exit()
-    
+
+# ***
+# auth.conf遵从YAML语法格式
+# 初始用户名和密码分别为 user1 passwd
+# 
+# author: xuanxuan
+# ***
 
 HOST,PORT = '',2073
 try:
