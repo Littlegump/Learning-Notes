@@ -1,0 +1,55 @@
+#!/usr/bin/env python
+#_*_ coding:utf-8 _*_
+
+import socket
+import sys
+import requests
+
+try:
+    host, port = 'localhost', 2073
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.connect((host, port))
+    print s.recv(1024)
+except socket.error:
+    print '连接服务器失败！请检查服务器启动情况'
+    sys.exit()
+
+try:
+    while True:
+# init data might be '   seT    book 1'
+# 这里可以做判断，如果有ip就输出redis>对端IP，如果连接失败就显示redis:noconnection>
+        data = raw_input('redis>')
+# format data to ['set', 'book', '1']
+        array = data.split()
+# format array to 'set book 1'
+        sendData = ' '.join(array)
+# check syntax
+        try:
+            model = __import__('check')
+            func = getattr(model, array[0].lower())
+            func(array)
+            s.sendall(sendData)
+            received = s.recv(1024)
+            print received
+        except AttributeError,msg:
+            print '(error) ERR unknown commands!' 
+        except (IndexError,TypeError),msg:
+            print '(error) ERR invalid arguments!'
+except KeyboardInterrupt:
+    print '谢谢使用~ 拜拜~'
+    s.close()
+except socket.error:
+    print '服务端连接断开，请检查服务端状况'
+    s.close()
+
+
+
+
+
+
+
+
+
+
+
+
