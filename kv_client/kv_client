@@ -6,7 +6,7 @@ import sys
 import requests
 
 try:
-    host, port = 'localhost', 2073
+    host, port = 'localhost', 2076
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((host, port))
     print s.recv(1024)
@@ -23,18 +23,21 @@ try:
         array = data.split()
 # format array to 'set book 1'
         sendData = ' '.join(array)
+	if sendData == '': continue
 # check syntax
         try:
             model = __import__('check')
             func = getattr(model, array[0].lower())
             func(array)
-            s.sendall(sendData)
-            received = s.recv(1024)
-            print received
         except AttributeError,msg:
             print '(error) ERR unknown commands!' 
+	    continue
         except (IndexError,TypeError),msg:
             print '(error) ERR invalid arguments!'
+	    continue
+        s.sendall(sendData)
+        received = s.recv(1024)
+        print received
 except KeyboardInterrupt:
     print '谢谢使用~ 拜拜~'
     s.close()

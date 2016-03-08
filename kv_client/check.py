@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 #_*_ coding:utf-8 _*_
 
-import requests
-import urllib3
+import sys
+
 
 def set(comm):
     if len(comm) <> 3:
@@ -13,20 +13,23 @@ def set(comm):
     except NameError,msg:
         print '你的输入格式有误',msg
 
-#def quit(comm):
-#    sys.exit()
-
 def get(comm):
     if len(comm) <> 2:
-        raise TypeError('(error) Err')
+        raise TypeError
 
 def auth(comm):
     if len(comm) <> 3:
-        raise TypeError('(error) Err')
+        raise TypeError
 
 def url(comm):
     if len(comm) <> 3:
-        raise TypeError('(error) Err')
+        raise TypeError
+
+def quit(comm):
+    str = comm[0].lower()
+    if str == 'quit': 
+	raise KeyboardInterrupt
+
 #    try:
 #	requests.get(comm[2])
 #    except requests.exceptions.ConnectionError:

@@ -82,7 +82,6 @@ def url(array):
     if Flag == 1:
 	val = str(get(array))
 	if val <> 'None':
-#        st = array[0] + val
 	    return array[0]+': '+ val
 	else:
 	    try:
